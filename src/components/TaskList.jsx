@@ -3,21 +3,10 @@ import axios from "axios";
 import { useState, useEffect } from "react";
 import TaskItem from "./TaskItem";
 import { useAuth } from "../provider/AuthProvider";
-import {
-  DndContext,
-  closestCenter,
-  useSensor,
-  useSensors,
-  PointerSensor,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import DragHandle from "./DragHandle";
+import DragHandle from "./DragHandle";  // The Drag Handle component
 
 const TaskList = () => {
   const { user } = useAuth();
@@ -39,7 +28,7 @@ const TaskList = () => {
         const response = await axios.get("http://localhost:3000/tasks", {
           headers: { Authorization: token },
         });
-        return Array.isArray(response.data) ? response.data : []; // Ensure array
+        return Array.isArray(response.data) ? response.data : [];
       }
       return [];
     },
@@ -114,18 +103,21 @@ const TaskList = () => {
     },
   });
 
-  // Drag and Drop Configuration
+  // Drag-and-Drop Configuration
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
+    // Get the index of the dragged task
     const oldIndex = tasks.findIndex((task) => task._id === active.id);
     const newIndex = tasks.findIndex((task) => task._id === over.id);
+
+    // Reorder tasks
     const reorderedTasks = arrayMove(tasks, oldIndex, newIndex);
 
-    // Updating category after drag operation
+    // We update the task order in the database (or adjust task data as needed)
     const updatedTask = { ...reorderedTasks[newIndex], category: reorderedTasks[newIndex].category };
     updateTaskMutation.mutate(updatedTask);
   };
