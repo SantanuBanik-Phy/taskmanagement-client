@@ -7,6 +7,8 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from 
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import DragHandle from "./DragHandle";  // The Drag Handle component
+import Loading from "./Loading";
+
 
 const TaskList = () => {
   const { user } = useAuth();
@@ -50,7 +52,7 @@ const TaskList = () => {
   const addTaskMutation = useMutation({
     mutationFn: async (newTask) => {
       const token = await user.getIdToken();
-      return axios.post("http://localhost:3000/tasks", newTask, {
+      return axios.post("http://localhost:3000/tasks", {...newTask, id: Date.now().toString() }, {
         headers: { Authorization: token },
       });
     },
@@ -109,20 +111,27 @@ const TaskList = () => {
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
-    // Get the index of the dragged task
-    const oldIndex = tasks.findIndex((task) => task._id === active.id);
-    const newIndex = tasks.findIndex((task) => task._id === over.id);
-
-    // Reorder tasks
-    const reorderedTasks = arrayMove(tasks, oldIndex, newIndex);
-
-    // We update the task order in the database (or adjust task data as needed)
-    const updatedTask = { ...reorderedTasks[newIndex], category: reorderedTasks[newIndex].category };
+  
+    const activeIndex = tasks.findIndex((task) => task._id === active.id);
+    const overIndex = tasks.findIndex((task) => task._id === over.id);
+  
+    // Determine the new index based on the drag direction
+    let newIndex = overIndex;
+    if (activeIndex < overIndex) {
+      newIndex = overIndex - 1; // If dragging down, insert before the over item
+    }
+  
+    // Reorder the tasks array
+    const updatedTasks = arrayMove(tasks, activeIndex, newIndex);
+  
+    // Update the category of the reordered task
+    const updatedTask = {...updatedTasks[newIndex], category: updatedTasks[newIndex].category };
+  
+    // Update the tasks in the database (or adjust task data as needed)
     updateTaskMutation.mutate(updatedTask);
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div><Loading></Loading></div>;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
@@ -134,7 +143,7 @@ const TaskList = () => {
         onSubmit={(e) => {
           e.preventDefault();
           addTaskMutation.mutate(newTask);
-          setNewTask({ title: "", description: "", category: "To-Do" });
+          setNewTask({ id: Date.now().toString(), title: "", description: "", category: "To-Do" });
         }}
         className="mb-6 flex gap-4 justify-center flex-wrap"
       >
@@ -249,7 +258,7 @@ const SortableTask = ({ task, deleteTaskMutation, setIsEditing, setEditTask }) =
   return (
     <div ref={setNodeRef} style={style} className="border rounded p-2 mb-2 flex items-center">
       {/* Add dedicated drag handle */}
-      <DragHandle />
+      <DragHandle task={task} />
       
       <div className="flex-1">
         <TaskItem 
