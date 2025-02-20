@@ -1,62 +1,57 @@
-
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
-import app from '../firebase/firebase.config'; 
-import axios from 'axios'; 
+import  app  from '../firebase/firebase.config';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const auth = getAuth(app);
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const auth = getAuth(app);
+  const googleProvider = new GoogleAuthProvider();
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-            if (authUser) {
-                try {
-                    const res = await axios.post('/users', { 
-                        uid: authUser.uid,
-                        email: authUser.email,
-                        displayName: authUser.displayName,
-                    });
-                    setUser(authUser);
-                } catch (error) {
-                    console.error('Error storing user data:', error);
-                }
-            } else {
-                setUser(null);
-            }
-            setLoading(false);
-        });
+  const signInWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const loggedInUser = result.user;
+      setUser(loggedInUser);
 
-        return () => unsubscribe();
-    }, [auth]);
+      // Store user data in MongoDB on first login
+      const userData = {
+        uid: loggedInUser.uid,
+        email: loggedInUser.email,
+        displayName: loggedInUser.displayName,
+      };
+      await axios.put('http://localhost:3000/users', userData);
+    } catch (error) {
+      console.error('Error signing in:', error);
+    }
+  };
 
-       const googleSignIn = async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-            await signInWithPopup(auth, provider);
-        } catch (error) {
-            console.error('Google Sign-in Error:', error);
-        }
-    };
+  const logOut = () => {
+    signOut(auth)
+    .then(() => {
+        setUser(null)
+      })
+    .catch(error => console.log(error))
+  }
 
-    const logOut = async () => {
-        try {
-            await signOut(auth);
-        } catch (error) {
-            console.error('Sign-out error:', error);
-        }
-    };
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  },);
 
-    return (
-        <AuthContext.Provider value={{ user, loading, googleSignIn, logOut }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const authInfo = { user, loading, signInWithGoogle, logOut };
+
+  return (
+    <AuthContext.Provider value={authInfo}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = () => useContext(AuthContext); // Custom hook
-
-
+export const useAuth = () => useContext(AuthContext);
