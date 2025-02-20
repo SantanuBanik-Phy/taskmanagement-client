@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router-dom";
 import HomeLayout from "../layouts/HomeLayout";
 
 import Home from "../pages/Home";
+import ErrorPage from "../pages/ErrorPage";
+
 
 
 
@@ -27,26 +29,11 @@ const router = createBrowserRouter([
    
     ],
   },
+ 
   {
-    // path: "auth",
-    // element: (
-    //   <>
-     
-    //     <AuthLayout />
-    //   </>
-    // ),
-    children: [
-      // {
-      //   path: "/auth/login",
-      //   element: <Login />,
-      // },
-      
-    ],
+    path: "*",
+    element: <ErrorPage></ErrorPage>
   },
-  // {
-  //   path: "*",
-  //   element: <ErrorPage></ErrorPage>
-  // },
 ]);
 
 export default router;
