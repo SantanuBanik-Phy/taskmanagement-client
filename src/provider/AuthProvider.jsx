@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
         email: loggedInUser.email,
         displayName: loggedInUser.displayName,
       };
-      await axios.put('http://localhost:3000/users', userData);
+      await axios.put('https://taskmanagement-server-nine.vercel.app/users', userData);
     } catch (error) {
       console.error('Error signing in:', error);
     }

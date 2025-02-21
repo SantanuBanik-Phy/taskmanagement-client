@@ -2,16 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useState, useEffect } from "react";
 import TaskItem from "./TaskItem";
-import { useAuth } from "../provider/AuthProvider";
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import DragHandle from "./DragHandle";  // The Drag Handle component
 import Loading from "./Loading";
 
-
 const TaskList = () => {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editTask, setEditTask] = useState({});
@@ -25,46 +22,22 @@ const TaskList = () => {
   const { isLoading, error, data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
-      if (user) {
-        const token = await user.getIdToken();
-        const response = await axios.get("http://localhost:3000/tasks", {
-          headers: { Authorization: token },
-        });
-        return Array.isArray(response.data) ? response.data : [];
-      }
-      return [];
+      const response = await axios.get("https://taskmanagement-server-nine.vercel.app/tasks"); // No Authorization header
+      return Array.isArray(response.data) ? response.data : [];
     },
   });
-
-  // Real-time WebSocket connection
-  useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080");
-
-    ws.onmessage = (event) => {
-      const updatedTasks = JSON.parse(event.data);
-      queryClient.setQueryData(["tasks"], updatedTasks);
-    };
-
-    return () => ws.close();
-  }, []);
 
   // Task mutations
   const addTaskMutation = useMutation({
     mutationFn: async (newTask) => {
-      const token = await user.getIdToken();
-      return axios.post("http://localhost:3000/tasks", {...newTask, id: Date.now().toString() }, {
-        headers: { Authorization: token },
-      });
+      return axios.post("https://taskmanagement-server-nine.vercel.app/tasks", { ...newTask, id: Date.now().toString() });
     },
     onSuccess: () => queryClient.invalidateQueries(["tasks"]),
   });
 
   const updateTaskMutation = useMutation({
     mutationFn: async (updatedTask) => {
-      const token = await user.getIdToken();
-      return axios.put(`http://localhost:3000/tasks/${updatedTask._id}`, updatedTask, {
-        headers: { Authorization: token },
-      });
+      return axios.put(`https://taskmanagement-server-nine.vercel.app/tasks/${updatedTask._id}`, updatedTask);
     },
     onMutate: async (updatedTask) => {
       await queryClient.cancelQueries(["tasks"]);
@@ -86,10 +59,7 @@ const TaskList = () => {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (id) => {
-      const token = await user.getIdToken();
-      return axios.delete(`http://localhost:3000/tasks/${id}`, {
-        headers: { Authorization: token },
-      });
+      return axios.delete(`https://taskmanagement-server-nine.vercel.app/tasks/${id}`);
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries(["tasks"]);
@@ -111,27 +81,22 @@ const TaskList = () => {
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-  
+
     const activeIndex = tasks.findIndex((task) => task._id === active.id);
     const overIndex = tasks.findIndex((task) => task._id === over.id);
-  
-    // Determine the new index based on the drag direction
+
     let newIndex = overIndex;
     if (activeIndex < overIndex) {
       newIndex = overIndex - 1; // If dragging down, insert before the over item
     }
-  
-    // Reorder the tasks array
+
     const updatedTasks = arrayMove(tasks, activeIndex, newIndex);
-  
-    // Update the category of the reordered task
-    const updatedTask = {...updatedTasks[newIndex], category: updatedTasks[newIndex].category };
-  
-    // Update the tasks in the database (or adjust task data as needed)
+    const updatedTask = { ...updatedTasks[newIndex], category: updatedTasks[newIndex].category };
+
     updateTaskMutation.mutate(updatedTask);
   };
 
-  if (isLoading) return <div><Loading></Loading></div>;
+  if (isLoading) return <div><Loading /></div>;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
