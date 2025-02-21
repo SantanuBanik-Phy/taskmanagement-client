@@ -80,22 +80,34 @@ const TaskList = () => {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
+  
     if (!over || active.id === over.id) return;
-
+  
     const activeIndex = tasks.findIndex((task) => task._id === active.id);
     const overIndex = tasks.findIndex((task) => task._id === over.id);
-
-    let newIndex = overIndex;
-    if (activeIndex < overIndex) {
-      newIndex = overIndex - 1; // If dragging down, insert before the over item
-    }
-
-    const updatedTasks = arrayMove(tasks, activeIndex, newIndex);
-    const updatedTask = { ...updatedTasks[newIndex], category: updatedTasks[newIndex].category };
-
-    updateTaskMutation.mutate(updatedTask);
+  
+    // Reorder tasks in the array immediately
+    const reorderedTasks = arrayMove(tasks, activeIndex, overIndex);
+  
+    reorderedTasks.forEach((task, index) => {
+      const updatedTask = { ...task, order: index + 1 }; // Ensure the task order is updated
+  
+      // Optimistically update the UI
+      queryClient.setQueryData(["tasks"], (oldTasks) =>
+        oldTasks.map((t) =>
+          t._id === updatedTask._id ? { ...t, order: updatedTask.order } : t
+        )
+      );
+  
+      // Immediately update the task order in the backend
+      updateTaskMutation.mutate(updatedTask);
+    });
   };
+  
+  
 
+
+  
   if (isLoading) return <div><Loading /></div>;
   if (error) return <div>Error: {error.message}</div>;
 
