@@ -4,7 +4,7 @@ This is a full-stack Task Manager application built with React, Express.js, Mong
 
 ## Live Links
 
- [https://your-frontend-app-url.com](https://your-frontend-app-url.com)
+ [https://task-mangement-3f630.web.app/](https://task-mangement-3f630.web.app/)
 
 
 ## Dependencies
@@ -20,11 +20,12 @@ This is a full-stack Task Manager application built with React, Express.js, Mong
     *   firebase
     *   Tailwind CSS
     *   DaisyUI
+    *   Framer Motion
+    *   TanstackQuery
 *   Backend:
     *   Express.js
     *   MongoDB
     *   Firebase Admin SDK
-    *   ws (WebSocket)
     *   dotenv
 
 ## Installation Steps
@@ -50,4 +51,4 @@ This is a full-stack Task Manager application built with React, Express.js, Mong
     *   Express.js for API
     *   MongoDB for database
     *   Firebase Authentication for user authentication
-    *   WebSockets for real-time updates
+   
